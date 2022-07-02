@@ -1,5 +1,5 @@
 use itertools::iproduct;
-use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
+use rayon::prelude::*;
 
 use crate::*;
 
@@ -42,10 +42,15 @@ impl Molecule {
                 Option<&mut CINToptimizer>,
             ) -> i32
             + std::marker::Sync,
+        FOpt: Fn(&[[i32; 6]], &[[i32; 8]], &[f64]) -> CINToptimizer
+            + std::marker::Send
+            + std::marker::Sync,
     >(
         &self,
         int_func: F,
         n_comp: usize,
+        opt_func: FOpt,
+        use_opt: bool,
     ) -> Array5<f64> {
         let n_ao = self.get_n_ao();
         let n_sh = self.get_shells().len();
@@ -60,9 +65,18 @@ impl Molecule {
             .collect();
 
         chunks.par_iter_mut().for_each_init(
-            || vec![0.0; self.get_max_shell_size().pow(4) * n_comp],
-            |buf, (shls, chunk)| {
-                self.int(&int_func, buf, *shls, None);
+            || {
+                (
+                    vec![0.0; self.get_max_shell_size().pow(4) * n_comp],
+                    if use_opt {
+                        Some(self.opt(&opt_func))
+                    } else {
+                        None
+                    },
+                )
+            },
+            |(buf, opt), (shls, chunk)| {
+                self.int(&int_func, buf, *shls, opt.as_mut());
 
                 let buf_view =
                     ArrayView5::from_shape(chunk.dim(), &buf).unwrap();

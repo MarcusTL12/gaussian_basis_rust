@@ -10,23 +10,27 @@ pub use ndarray::*;
 
 #[cfg(test)]
 mod tests {
-    use std::fs::read_to_string;
+    use std::{
+        fs::File,
+        io::{BufRead, BufReader},
+    };
 
     use crate::*;
 
     fn load_vec(vec_name: &str) -> Vec<f64> {
-        read_to_string(format!("./test_data/{}.txt", vec_name))
-            .unwrap()
-            .split(", ")
-            .map(|s| s.parse().unwrap())
-            .collect()
+        BufReader::new(
+            File::open(format!("test_data/{}.txt", vec_name)).unwrap(),
+        )
+        .lines()
+        .map(|l| l.unwrap().parse().unwrap())
+        .collect()
     }
 
     #[test]
     fn test_parse_basis() {
         let bas = get_basis("cc-pvdz");
 
-        assert_eq!(bas["O"].len(), 3);
+        assert_eq!(bas["O"].len(), 5);
     }
 
     #[test]
@@ -52,13 +56,8 @@ mod tests {
         let check = [
             1.0000000000000002,
             -0.21406265175603023,
-            0.19438415205281015,
             -0.21406265175603018,
             1.0000000000000002,
-            0.7086073285770356,
-            0.19438415205281015,
-            0.7086073285770356,
-            1.0,
         ];
 
         for (a, b) in buf.iter().zip(check.iter()) {
@@ -95,6 +94,11 @@ mod tests {
 
     #[test]
     fn test_int2e_matrix() {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(2)
+            .build_global()
+            .unwrap();
+
         let mol = Molecule::new(
             parse_atoms(
                 "
@@ -106,14 +110,19 @@ mod tests {
             &get_basis("cc-pvdz"),
         );
 
-        let eri_func = cint2e!(int2e_sph);
-
-        let eri_mat = mol.construct_int2e(eri_func, 1);
+        let eri_mat = mol.construct_int2e(
+            cint2e!(int2e_sph),
+            1,
+            cint_opt!(int2e_optimizer),
+            true,
+        );
 
         let slice = eri_mat.as_slice_memory_order().unwrap();
 
         // from pyscf
         let check = load_vec("h2o_eri_ccpvdz");
+
+        assert_eq!(slice.len(), check.len());
 
         for (a, b) in slice.iter().zip(check.iter()) {
             assert!((a - b).abs() < 1e-14);

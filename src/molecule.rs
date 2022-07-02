@@ -212,4 +212,11 @@ impl Molecule {
     ) -> i32 {
         f(buf, shls, &self.lc_atm, &self.lc_bas, &self.lc_env, opt)
     }
+
+    pub fn opt<FOpt: Fn(&[[i32; 6]], &[[i32; 8]], &[f64]) -> CINToptimizer>(
+        &self,
+        f: FOpt,
+    ) -> CINToptimizer {
+        f(&self.lc_atm, &self.lc_bas, &self.lc_env)
+    }
 }

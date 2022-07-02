@@ -32,7 +32,7 @@ fn parse_basis(basis_file: &str) -> HashMap<String, Vec<(i32, Array2<f64>)>> {
 
     static REG2: Lazy<Regex> = Lazy::new(|| {
         Regex::new(
-            r"([A-Z][a-z]?) +([A-Z])((?:\n(?: +-?\d+\.\d+(?:E(?:\+|-)\d+)?)+)+)",
+            r"([A-Z][a-z]?) +([A-Z])((?:\n(?: +-?\d+\.\d+(?:E(?:\+|-)\d+)?)+ +)+)",
         )
         .unwrap()
     });
