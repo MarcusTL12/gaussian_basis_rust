@@ -201,14 +201,14 @@ impl Molecule {
             &[[i32; 6]],
             &[[i32; 8]],
             &[f64],
-            Option<&CINToptimizer>,
+            Option<&mut CINToptimizer>,
         ) -> i32,
     >(
         &self,
         f: F,
         buf: &mut [f64],
         shls: [i32; N_SH],
-        opt: Option<&CINToptimizer>,
+        opt: Option<&mut CINToptimizer>,
     ) -> i32 {
         f(buf, shls, &self.lc_atm, &self.lc_bas, &self.lc_env, opt)
     }
