@@ -70,7 +70,7 @@ mod tests {
 
         let ovlp_fn = cint1e!(int1e_ovlp_sph);
 
-        let ovlp_mat = mol.construct_int1e(ovlp_fn, 1);
+        let ovlp_mat = mol.construct_int1e_sym(ovlp_fn, 1);
 
         let slice = ovlp_mat.as_slice_memory_order().unwrap();
 
