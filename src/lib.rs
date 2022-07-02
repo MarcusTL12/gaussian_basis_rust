@@ -57,7 +57,6 @@ mod tests {
 
     #[test]
     fn test_int1e_matrix() {
-        use ndarray::prelude::*;
         let mol = Molecule::new(
             parse_atoms(
                 "
@@ -72,7 +71,6 @@ mod tests {
         let ovlp_fn = cint1e!(int1e_ovlp_sph);
 
         let ovlp_mat = mol.construct_int1e(ovlp_fn, 1);
-        let mat = ovlp_mat.slice(s![.., .., 0]);
 
         let slice = ovlp_mat.as_slice_memory_order().unwrap();
 
@@ -655,8 +653,6 @@ mod tests {
             0.0,
             1.0000000000000004,
         ];
-
-        println!("{:?}", mat);
 
         for (a, b) in slice.iter().zip(check.iter()) {
             assert!((a - b).abs() < 1e-14);

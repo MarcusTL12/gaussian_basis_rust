@@ -1,18 +1,44 @@
+use std::cell::RefCell;
+
 use libcint::*;
 use ndarray::prelude::*;
+use rayon::prelude::*;
+use thread_local::ThreadLocal;
 
-use super::Molecule;
+use crate::{Molecule, Shell};
+
+fn split_mat<'a>(
+    mut mat: ArrayViewMut3<'a, f64>,
+    shells: &[Shell],
+) -> Vec<([i32; 2], ArrayViewMut3<'a, f64>)> {
+    let mut parts = Vec::new();
+
+    for (i, sh1) in shells.iter().enumerate() {
+        let (mut top, rest) = mat.split_at(Axis(0), sh1.n_ao);
+        mat = rest;
+
+        for (j, sh2) in shells.iter().enumerate() {
+            let (chunk, right) = top.split_at(Axis(1), sh2.n_ao);
+            top = right;
+
+            parts.push(([j as i32, i as i32], chunk));
+        }
+    }
+
+    parts
+}
 
 impl Molecule {
     pub fn construct_int1e<
         F: Fn(
-            &mut [f64],
-            [i32; 2],
-            &[[i32; 6]],
-            &[[i32; 8]],
-            &[f64],
-            Option<&mut CINToptimizer>,
-        ) -> i32,
+                &mut [f64],
+                [i32; 2],
+                &[[i32; 6]],
+                &[[i32; 8]],
+                &[f64],
+                Option<&mut CINToptimizer>,
+            ) -> i32
+            + std::marker::Sync,
     >(
         &self,
         int_func: F,
@@ -22,47 +48,26 @@ impl Molecule {
 
         let mut matrix = Array3::zeros((n_ao, n_ao, n_comp));
 
-        let mut buf = vec![0.0; self.get_max_shell_size().pow(2) * n_comp];
+        let mut chunks = split_mat(matrix.view_mut(), self.get_shells());
 
-        for (i, sh) in self.get_shells().iter().enumerate() {
-            let i1 = sh.ao_ind;
-            let i2 = i1 + sh.n_ao;
+        let buf_threads = ThreadLocal::new();
 
-            self.int(&int_func, &mut buf, [i as i32; 2], None);
+        chunks.par_iter_mut().for_each(|(shls, chunk)| {
+            let mut buf = buf_threads
+                .get_or(|| {
+                    RefCell::new(vec![
+                        0.0;
+                        self.get_max_shell_size().pow(2) * n_comp
+                    ])
+                })
+                .borrow_mut();
 
-            let buf_view =
-                ArrayView3::from_shape((sh.n_ao, sh.n_ao, n_comp), &buf)
-                    .unwrap();
+            self.int(&int_func, &mut buf, *shls, None);
 
-            let mut mat_view = matrix.slice_mut(s![i1..i2, i1..i2, ..]);
+            let buf_view = ArrayView3::from_shape(chunk.dim(), &buf).unwrap();
 
-            mat_view.assign(&buf_view);
-        }
-
-        for (i, sh1) in self.get_shells().iter().enumerate() {
-            let i1 = sh1.ao_ind;
-            let i2 = i1 + sh1.n_ao;
-            for (j, sh2) in self.get_shells().iter().take(i).enumerate() {
-                let j1 = sh2.ao_ind;
-                let j2 = j1 + sh2.n_ao;
-
-                self.int(&int_func, &mut buf, [j as i32, i as i32], None);
-
-                let mut buf_view =
-                    ArrayView3::from_shape((sh1.n_ao, sh2.n_ao, n_comp), &buf)
-                        .unwrap();
-
-                let mut mat_view = matrix.slice_mut(s![i1..i2, j1..j2, ..]);
-
-                mat_view.assign(&buf_view);
-
-                let mut mat_view = matrix.slice_mut(s![j1..j2, i1..i2, ..]);
-
-                buf_view.swap_axes(0, 1);
-
-                mat_view.assign(&buf_view);
-            }
-        }
+            chunk.assign(&buf_view);
+        });
 
         matrix
     }
