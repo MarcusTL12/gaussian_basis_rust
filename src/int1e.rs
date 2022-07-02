@@ -1,8 +1,8 @@
+use itertools::iproduct;
 use libcint::*;
-use ndarray::prelude::*;
 use rayon::prelude::*;
 
-use crate::{Molecule, Shell};
+use crate::*;
 
 fn split_mat<'a>(
     mut mat: ArrayViewMut3<'a, f64>,
@@ -46,11 +46,9 @@ impl Molecule {
 
         let mut matrix = Array3::zeros((n_ao, n_ao, n_comp));
 
-        let mut chunks_mat = split_mat(matrix.view_mut(), self.get_shells());
-
-        let mut chunks: Vec<_> = (0..n_sh)
-            .flat_map(|i| (0..n_sh).map(move |j| [j as i32, i as i32]))
-            .zip(chunks_mat.as_mut_slice().iter_mut())
+        let mut chunks: Vec<_> = iproduct!(0..n_sh, 0..n_sh)
+            .map(|(i, j)| [j as i32, i as i32])
+            .zip(split_mat(matrix.view_mut(), self.get_shells()).into_iter())
             .collect();
 
         chunks.par_iter_mut().for_each_init(
