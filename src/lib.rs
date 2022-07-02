@@ -1,8 +1,9 @@
 mod basisparse;
+// mod int1e;
 mod molecule;
 
-pub use basisparse::get_basis;
-pub use molecule::Molecule;
+pub use basisparse::*;
+pub use molecule::*;
 
 #[cfg(test)]
 mod tests {
@@ -19,20 +20,22 @@ mod tests {
     fn test_molecule() {
         use libcint::*;
 
-        let mut mol = Molecule::from_str(
-            "
-                O   0.0     0.0     0.0
-                H   1.0     0.0     0.0
-                H   0.0     1.0     0.0
-        ",
+        let mol = Molecule::new(
+            parse_atoms(
+                "
+    O   0.0     0.0     0.0
+    H   1.0     0.0     0.0
+    H   0.0     1.0     0.0
+",
+            ),
             &get_basis("cc-pvdz"),
         );
 
         let mut buf = [0.0; 9];
 
-        let ovlp_fn = libcint::cint1e!(int1e_ovlp_sph);
+        let ovlp_fn = cint1e!(int1e_ovlp_sph);
 
-        mol.int1e(ovlp_fn, &mut buf, [0, 0]);
+        mol.int(ovlp_fn, &mut buf, [0, 0], None);
 
         // From pyscf
         let check = [
