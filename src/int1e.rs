@@ -6,6 +6,7 @@ use crate::*;
 use matrix_util::*;
 
 impl Molecule {
+    // If matrix is Some, it will add to the existing value there.
     pub fn construct_int1e<
         F: Fn(
                 &mut [f64],
@@ -48,7 +49,7 @@ impl Molecule {
                 let buf_view =
                     ArrayView3::from_shape(chunk.dim(), &buf).unwrap();
 
-                chunk.assign(&buf_view);
+                *chunk += &buf_view;
             },
         );
 
@@ -118,7 +119,7 @@ impl Molecule {
                 let buf_view =
                     ArrayView3::from_shape(chunk.dim(), &buf).unwrap();
 
-                chunk.assign(&buf_view);
+                *chunk += &buf_view;
             },
         );
 
@@ -130,8 +131,8 @@ impl Molecule {
                 let buf_view =
                     ArrayView3::from_shape(chunk1.dim(), &buf).unwrap();
 
-                chunk1.assign(&buf_view);
-                chunk2.assign(&buf_view);
+                *chunk1 += &buf_view;
+                *chunk2 += &buf_view;
             },
         );
 

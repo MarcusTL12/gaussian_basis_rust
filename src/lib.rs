@@ -20,6 +20,8 @@ mod tests {
 
     use clap::Parser;
 
+    const TEST_PREC: f64 = 1e-13;
+
     #[derive(Parser, Debug)]
     struct Args {
         #[clap(long)]
@@ -92,7 +94,7 @@ mod tests {
         ];
 
         for (a, b) in buf.iter().zip(check.iter()) {
-            assert!((a - b).abs() < 1e-14);
+            assert!((a - b).abs() < TEST_PREC);
         }
     }
 
@@ -121,7 +123,7 @@ mod tests {
         let check = load_vec("h2o_ovlp_ccpvdz");
 
         for (a, b) in slice.iter().zip(check.iter()) {
-            assert!((a - b).abs() < 1e-14);
+            assert!((a - b).abs() < TEST_PREC);
         }
     }
 
@@ -156,7 +158,7 @@ mod tests {
         assert_eq!(slice.len(), check.len());
 
         for (a, b) in slice.iter().zip(check.iter()) {
-            assert!((a - b).abs() < 1e-14);
+            assert!((a - b).abs() < TEST_PREC);
         }
     }
 
@@ -187,7 +189,35 @@ mod tests {
         assert_eq!(slice.len(), check.len());
 
         for (a, b) in slice.iter().zip(check.iter()) {
-            assert!((a - b).abs() < 1e-14);
+            assert!((a - b).abs() < TEST_PREC);
+        }
+    }
+
+    #[test]
+    fn test_h_construction() {
+        set_threads();
+
+        let mol = Molecule::new(
+            parse_atoms(
+                "
+    O   0.0     0.0     0.0
+    H   1.0     0.0     0.0
+    H   0.0     1.0     0.0
+",
+            ),
+            &get_basis("cc-pvdz"),
+        );
+
+        let h = mol.construct_h(None);
+
+        let slice = h.as_slice_memory_order().unwrap();
+
+        let check = load_vec("h2o_h_ccpvdz");
+
+        assert_eq!(slice.len(), check.len());
+
+        for (a, b) in slice.iter().zip(check.iter()) {
+            assert!((a - b).abs() < TEST_PREC);
         }
     }
 }

@@ -128,7 +128,18 @@ impl Molecule {
         ao_g
     }
 
-    pub fn construct_h(&self) -> Array2<f64> {
-        todo!()
+    pub fn construct_h(&self, h: Option<Array2<f64>>) -> Array2<f64> {
+        let n_ao = self.get_n_ao();
+
+        let h = h.and_then(|mut m| {
+            assert_eq!(m.dim(), (n_ao, n_ao));
+            m.fill(0.0);
+            Some(m.into_shape((n_ao, n_ao, 1)).unwrap())
+        });
+
+        let h = self.construct_int1e_sym(cint1e!(int1e_kin_sph), 1, h);
+        let h = self.construct_int1e_sym(cint1e!(int1e_nuc_sph), 1, Some(h));
+
+        h.into_shape((n_ao, n_ao)).unwrap()
     }
 }

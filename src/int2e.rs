@@ -61,13 +61,14 @@ impl Molecule {
                 let buf_view =
                     ArrayView5::from_shape(chunk.dim(), &buf).unwrap();
 
-                chunk.assign(&buf_view);
+                *chunk += &buf_view;
             },
         );
 
         matrix
     }
 
+    // Very inefficient to use. Only for debug purposes
     pub fn get_int2e_single<
         F: Fn(
             &mut [f64],
