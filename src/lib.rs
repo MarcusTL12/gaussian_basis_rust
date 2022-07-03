@@ -255,4 +255,22 @@ mod tests {
             assert!((a - b).abs() < TEST_PREC);
         }
     }
+
+    #[test]
+    fn test_nuc_rep() {
+        let mol = Molecule::new(
+            parse_atoms(
+                "
+    O   0.0     0.0     0.0
+    H   1.0     0.0     0.0
+    H   0.0     1.0     0.0
+",
+            ),
+            &mut get_basis("cc-pvdz"),
+        );
+
+        let nuc_rep = mol.get_nuc_rep();
+
+        assert!(nuc_rep - 8.841020169010916 < TEST_PREC);
+    }
 }

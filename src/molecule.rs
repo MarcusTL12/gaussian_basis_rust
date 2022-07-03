@@ -90,6 +90,7 @@ fn init_libcint(
     Vec<Shell>,
     usize,
     usize,
+    usize,
 ) {
     let mut atm = Vec::new();
     let mut bas = Vec::new();
@@ -97,8 +98,12 @@ fn init_libcint(
 
     let mut shells = Vec::new();
 
+    let mut nuc_charge = 0;
+
     for (a, xyz) in atoms {
-        atm.push([periodic_table(a), env.len() as i32, 0, 0, 0, 0]);
+        let charge = periodic_table(a);
+        nuc_charge += charge as usize;
+        atm.push([charge, env.len() as i32, 0, 0, 0, 0]);
         env.extend(xyz.iter().map(|x| x * Å2B));
     }
 
@@ -142,7 +147,7 @@ fn init_libcint(
         }
     }
 
-    (atm, bas, env, shells, n_ao, max_shell_size)
+    (atm, bas, env, shells, n_ao, nuc_charge, max_shell_size)
 }
 
 pub struct Molecule {
@@ -152,12 +157,14 @@ pub struct Molecule {
     lc_bas: Vec<[i32; 8]>,
     lc_env: Vec<f64>,
     n_ao: usize,
+    n_el: usize,
+    nuc_charge: usize,
     max_shell_size: usize,
 }
 
 impl Molecule {
     pub fn new(atoms: Vec<(String, [f64; 3])>, basis: &mut LazyBasis) -> Self {
-        let (lc_atm, lc_bas, lc_env, shells, n_ao, max_shell_size) =
+        let (lc_atm, lc_bas, lc_env, shells, n_ao, nuc_charge, max_shell_size) =
             init_libcint(&atoms, basis);
 
         Self {
@@ -167,6 +174,8 @@ impl Molecule {
             lc_bas,
             lc_env,
             n_ao,
+            n_el: nuc_charge,
+            nuc_charge,
             max_shell_size,
         }
     }
@@ -185,6 +194,18 @@ impl Molecule {
 
     pub fn get_n_ao(&self) -> usize {
         self.n_ao
+    }
+
+    pub fn get_n_el(&self) -> usize {
+        self.n_el
+    }
+
+    pub fn get_nuc_charge(&self) -> usize {
+        self.nuc_charge
+    }
+
+    pub fn set_charge(&mut self, charge: i32) {
+        self.n_el = (self.nuc_charge as i32 + charge) as usize;
     }
 
     pub fn get_max_shell_size(&self) -> usize {
@@ -224,5 +245,29 @@ impl Molecule {
         f: FOpt,
     ) -> CINToptimizer {
         f(&self.lc_atm, &self.lc_bas, &self.lc_env)
+    }
+
+    pub fn get_nuc_rep(&self) -> f64 {
+        self.atoms
+            .iter()
+            .enumerate()
+            .flat_map(|(i, atm1)| {
+                let c1 = periodic_table(&atm1.0);
+                let r1 = atm1.1;
+                self.atoms.iter().take(i).map(move |atm2| {
+                    let c2 = periodic_table(&atm2.0);
+                    let r2 = atm2.1;
+
+                    (c1 * c2) as f64
+                        / (r1
+                            .iter()
+                            .zip(r2.iter())
+                            .map(|(x1, x2)| (x1 - x2).powi(2))
+                            .sum::<f64>()
+                            .sqrt()
+                            * Å2B)
+                })
+            })
+            .sum()
     }
 }
