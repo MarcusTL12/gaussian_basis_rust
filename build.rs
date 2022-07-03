@@ -1,17 +1,21 @@
-use std::{
-    env,
-    fs::{copy, create_dir_all, read_dir},
-    path::Path,
+use std::{env, fs::create_dir_all, path::Path};
+
+use ao_basis::{
+    basisparser::{self, get_basis},
+    save_basis,
 };
 
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
 
-    let basis_dir = Path::new(&out_dir).join("ao_basis");
-    create_dir_all(basis_dir.clone()).unwrap();
+    let top_dir = Path::new(&out_dir).join("ao_basis");
+    create_dir_all(top_dir.clone()).unwrap();
 
-    for basis_file in read_dir("ao_basis").unwrap() {
-        let entry = basis_file.unwrap();
-        copy(entry.path(), basis_dir.clone().join(entry.file_name())).unwrap();
+    for basis_name in basisparser::basis_names() {
+        let basis_dir = top_dir.clone().join(&basis_name);
+        create_dir_all(basis_dir.clone()).unwrap();
+        let basis = get_basis(&basis_name);
+
+        save_basis(basis_dir.to_str().unwrap(), &basis);
     }
 }

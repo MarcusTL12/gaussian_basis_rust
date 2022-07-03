@@ -6,7 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-libcint = {git = "https://github.com/MarcusTL12/libcint_rust"}
+libcint = { git = "https://github.com/MarcusTL12/libcint_rust" }
+ao_basis = { git = "https://github.com/MarcusTL12/ao_basis_rust" }
 regex = "1.5"
 once_cell = "1.12"
 ndarray = "0.15"
@@ -17,3 +18,6 @@ arrayvec = "0.7"
 [dev-dependencies]
 num_cpus = "1.13"
 clap = {version = "3.2", features = ["derive", "cargo"]}
+
+[build-dependencies]
+ao_basis = { git = "https://github.com/MarcusTL12/ao_basis_rust" }

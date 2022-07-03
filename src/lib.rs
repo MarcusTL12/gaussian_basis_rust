@@ -1,15 +1,19 @@
 mod ao_fock;
-mod basisparse;
 mod int1e;
 mod int2e;
 mod matrix_util;
 mod molecule;
 
+use ao_basis::{load_basis, LazyBasis};
 pub use ao_fock::*;
-pub use basisparse::*;
 pub use libcint::*;
 pub use molecule::*;
 pub use ndarray::*;
+
+pub fn get_basis(basis_name: &str) -> LazyBasis {
+    let path = format!("{}/ao_basis/{basis_name}/", env!("OUT_DIR"));
+    load_basis(&path)
+}
 
 #[cfg(test)]
 mod tests {
@@ -61,9 +65,9 @@ mod tests {
 
     #[test]
     fn test_parse_basis() {
-        let bas = get_basis("cc-pvdz");
+        let mut bas = get_basis("cc-pvdz");
 
-        assert_eq!(bas["O"].len(), 5);
+        assert_eq!(bas.get("O").len(), 5);
     }
 
     #[test]
@@ -76,7 +80,7 @@ mod tests {
     H   0.0     1.0     0.0
 ",
             ),
-            &get_basis("cc-pvdz"),
+            &mut get_basis("cc-pvdz"),
         );
 
         let mut buf = [0.0; 9];
@@ -110,7 +114,7 @@ mod tests {
     H   0.0     1.0     0.0
 ",
             ),
-            &get_basis("cc-pvdz"),
+            &mut get_basis("cc-pvdz"),
         );
 
         let ovlp_fn = cint1e!(int1e_ovlp_sph);
@@ -139,7 +143,7 @@ mod tests {
     H   0.0     1.0     0.0
 ",
             ),
-            &get_basis("cc-pvdz"),
+            &mut get_basis("cc-pvdz"),
         );
 
         let eri_mat = mol.construct_int2e(
@@ -174,7 +178,7 @@ mod tests {
     H   0.0     1.0     0.0
 ",
             ),
-            &get_basis("cc-pvdz"),
+            &mut get_basis("cc-pvdz"),
         );
 
         let density = load_vec("h2o_rand_D_ccpvdz");
@@ -205,7 +209,7 @@ mod tests {
     H   0.0     1.0     0.0
 ",
             ),
-            &get_basis("cc-pvdz"),
+            &mut get_basis("cc-pvdz"),
         );
 
         let h = mol.construct_ao_h(None);
@@ -233,7 +237,7 @@ mod tests {
     H   0.0     1.0     0.0
 ",
             ),
-            &get_basis("cc-pvdz"),
+            &mut get_basis("cc-pvdz"),
         );
 
         let density = load_vec("h2o_rand_D_ccpvdz");

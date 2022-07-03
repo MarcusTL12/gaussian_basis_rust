@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use ao_basis::LazyBasis;
 use libcint::*;
 use ndarray::prelude::*;
 
@@ -83,7 +82,7 @@ impl Shell {
 
 fn init_libcint(
     atoms: &Vec<(String, [f64; 3])>,
-    basis: &HashMap<String, Vec<(i32, Array2<f64>)>>,
+    basis: &mut LazyBasis,
 ) -> (
     Vec<[i32; 6]>,
     Vec<[i32; 8]>,
@@ -107,7 +106,7 @@ fn init_libcint(
     let mut max_shell_size = 0;
 
     for (i, (a, _)) in atoms.iter().enumerate() {
-        for (l, e_coeffs) in &basis[a] {
+        for (l, e_coeffs) in basis.get(a) {
             let (h, w) = e_coeffs.dim();
             bas.push([
                 i as i32,
@@ -157,10 +156,7 @@ pub struct Molecule {
 }
 
 impl Molecule {
-    pub fn new(
-        atoms: Vec<(String, [f64; 3])>,
-        basis: &HashMap<String, Vec<(i32, Array2<f64>)>>,
-    ) -> Self {
+    pub fn new(atoms: Vec<(String, [f64; 3])>, basis: &mut LazyBasis) -> Self {
         let (lc_atm, lc_bas, lc_env, shells, n_ao, max_shell_size) =
             init_libcint(&atoms, basis);
 
