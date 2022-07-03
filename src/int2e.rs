@@ -25,11 +25,17 @@ impl Molecule {
         n_comp: usize,
         opt_func: FOpt,
         use_opt: bool,
+        matrix: Option<Array5<f64>>,
     ) -> Array5<f64> {
         let n_ao = self.get_n_ao();
         let n_sh = self.get_shells().len();
 
-        let mut matrix = Array5::zeros((n_ao, n_ao, n_ao, n_ao, n_comp));
+        let mut matrix = if let Some(m) = matrix {
+            assert_eq!(m.dim(), (n_ao, n_ao, n_ao, n_ao, n_comp));
+            m
+        } else {
+            Array5::zeros((n_ao, n_ao, n_ao, n_ao, n_comp))
+        };
 
         let chunks = split_2e_mat_mut(matrix.view_mut(), self.get_shells());
 

@@ -113,7 +113,7 @@ mod tests {
 
         let ovlp_fn = cint1e!(int1e_ovlp_sph);
 
-        let ovlp_mat = mol.construct_int1e(ovlp_fn, 1);
+        let ovlp_mat = mol.construct_int1e(ovlp_fn, 1, None);
 
         let slice = ovlp_mat.as_slice_memory_order().unwrap();
 
@@ -145,6 +145,7 @@ mod tests {
             1,
             cint_opt!(int2e_optimizer),
             true,
+            None,
         );
 
         let slice = eri_mat.as_slice_memory_order().unwrap();
@@ -177,7 +178,7 @@ mod tests {
         let density = load_vec("h2o_rand_D_ccpvdz");
         let density = ArrayView2::from_shape((24, 24), &density).unwrap();
 
-        let ao_g = mol.construct_ao_g(density);
+        let ao_g = mol.construct_ao_g(density, None);
 
         let slice = ao_g.as_slice_memory_order().unwrap();
 

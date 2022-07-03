@@ -7,11 +7,20 @@ use rayon::prelude::*;
 
 impl Molecule {
     // Two electron part of Fock matrix (G(D))
-    pub fn construct_ao_g(&self, density: ArrayView2<f64>) -> Array2<f64> {
+    pub fn construct_ao_g(
+        &self,
+        density: ArrayView2<f64>,
+        matrix: Option<Array2<f64>>,
+    ) -> Array2<f64> {
         let n_ao = self.get_n_ao();
         let n_sh = self.get_shells().len();
 
-        let mut ao_g = Array2::zeros((n_ao, n_ao));
+        let mut ao_g = if let Some(m) = matrix {
+            assert_eq!(m.dim(), (n_ao, n_ao));
+            m
+        } else {
+            Array2::zeros((n_ao, n_ao))
+        };
 
         let mut chunks: Vec<_> = iproduct!(0..n_sh, 0..n_sh)
             .map(|(i, j)| (i as i32, j as i32))
@@ -104,6 +113,7 @@ impl Molecule {
             1,
             cint_opt!(int2e_optimizer),
             true,
+            None,
         );
 
         let ao_g = Array2::from_shape_fn((n_ao, n_ao), |(i, j)| {
@@ -116,5 +126,9 @@ impl Molecule {
         });
 
         ao_g
+    }
+
+    pub fn construct_h(&self) -> Array2<f64> {
+        todo!()
     }
 }

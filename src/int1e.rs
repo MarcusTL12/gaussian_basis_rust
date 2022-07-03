@@ -20,15 +20,24 @@ impl Molecule {
         &self,
         int_func: F,
         n_comp: usize,
+        matrix: Option<Array3<f64>>,
     ) -> Array3<f64> {
         let n_ao = self.get_n_ao();
         let n_sh = self.get_shells().len();
 
-        let mut matrix = Array3::zeros((n_ao, n_ao, n_comp));
+        let mut matrix = if let Some(m) = matrix {
+            assert_eq!(m.dim(), (n_ao, n_ao, n_comp));
+            m
+        } else {
+            Array3::zeros((n_ao, n_ao, n_comp))
+        };
 
         let mut chunks: Vec<_> = iproduct!(0..n_sh, 0..n_sh)
             .map(|(i, j)| [j as i32, i as i32])
-            .zip(split_1e_mat_mut(matrix.view_mut(), self.get_shells()).into_iter())
+            .zip(
+                split_1e_mat_mut(matrix.view_mut(), self.get_shells())
+                    .into_iter(),
+            )
             .collect();
 
         chunks.par_iter_mut().for_each_init(
@@ -60,11 +69,17 @@ impl Molecule {
         &self,
         int_func: F,
         n_comp: usize,
+        matrix: Option<Array3<f64>>,
     ) -> Array3<f64> {
         let n_ao = self.get_n_ao();
         let n_sh = self.get_shells().len();
 
-        let mut matrix = Array3::zeros((n_ao, n_ao, n_comp));
+        let mut matrix = if let Some(m) = matrix {
+            assert_eq!(m.dim(), (n_ao, n_ao, n_comp));
+            m
+        } else {
+            Array3::zeros((n_ao, n_ao, n_comp))
+        };
 
         let mut chunks: Vec<_> =
             split_1e_mat_mut(matrix.view_mut(), self.get_shells())
