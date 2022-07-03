@@ -25,12 +25,12 @@ impl Molecule {
         n_comp: usize,
         opt_func: FOpt,
         use_opt: bool,
-        matrix: Option<Array5<f64>>,
+        prealloc: Option<Array5<f64>>,
     ) -> Array5<f64> {
         let n_ao = self.get_n_ao();
         let n_sh = self.get_shells().len();
 
-        let mut matrix = if let Some(m) = matrix {
+        let mut matrix = if let Some(m) = prealloc {
             assert_eq!(m.dim(), (n_ao, n_ao, n_ao, n_ao, n_comp));
             m
         } else {

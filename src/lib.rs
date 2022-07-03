@@ -208,11 +208,42 @@ mod tests {
             &get_basis("cc-pvdz"),
         );
 
-        let h = mol.construct_h(None);
+        let h = mol.construct_ao_h(None);
 
         let slice = h.as_slice_memory_order().unwrap();
 
         let check = load_vec("h2o_h_ccpvdz");
+
+        assert_eq!(slice.len(), check.len());
+
+        for (a, b) in slice.iter().zip(check.iter()) {
+            assert!((a - b).abs() < TEST_PREC);
+        }
+    }
+
+    #[test]
+    fn test_ao_fock_construction() {
+        set_threads();
+
+        let mol = Molecule::new(
+            parse_atoms(
+                "
+    O   0.0     0.0     0.0
+    H   1.0     0.0     0.0
+    H   0.0     1.0     0.0
+",
+            ),
+            &get_basis("cc-pvdz"),
+        );
+
+        let density = load_vec("h2o_rand_D_ccpvdz");
+        let density = ArrayView2::from_shape((24, 24), &density).unwrap();
+
+        let ao_fock = mol.construct_ao_fock(density, None);
+
+        let slice = ao_fock.as_slice_memory_order().unwrap();
+
+        let check = load_vec("h2o_rand_F_ccpvdz");
 
         assert_eq!(slice.len(), check.len());
 

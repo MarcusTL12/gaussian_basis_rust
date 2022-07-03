@@ -10,12 +10,12 @@ impl Molecule {
     pub fn construct_ao_g(
         &self,
         density: ArrayView2<f64>,
-        matrix: Option<Array2<f64>>,
+        prealloc: Option<Array2<f64>>,
     ) -> Array2<f64> {
         let n_ao = self.get_n_ao();
         let n_sh = self.get_shells().len();
 
-        let mut ao_g = if let Some(m) = matrix {
+        let mut ao_g = if let Some(m) = prealloc {
             assert_eq!(m.dim(), (n_ao, n_ao));
             m
         } else {
@@ -101,45 +101,28 @@ impl Molecule {
         ao_g
     }
 
-    // Naive approach, precomputing entire n^4 eri matrix
-    pub fn construct_ao_g_naive(
-        &self,
-        density: ArrayView2<f64>,
-    ) -> Array2<f64> {
+    pub fn construct_ao_h(&self, prealloc: Option<Array2<f64>>) -> Array2<f64> {
         let n_ao = self.get_n_ao();
 
-        let g = self.construct_int2e(
-            cint2e!(int2e_sph),
-            1,
-            cint_opt!(int2e_optimizer),
-            true,
-            None,
-        );
-
-        let ao_g = Array2::from_shape_fn((n_ao, n_ao), |(i, j)| {
-            iproduct!(0..n_ao, 0..n_ao)
-                .map(|(k, l)| {
-                    density[(k, l)]
-                        * (g[(i, j, k, l, 0)] - 0.5 * g[(i, l, k, j, 0)])
-                })
-                .sum()
-        });
-
-        ao_g
-    }
-
-    pub fn construct_h(&self, h: Option<Array2<f64>>) -> Array2<f64> {
-        let n_ao = self.get_n_ao();
-
-        let h = h.and_then(|mut m| {
+        let prealloc = prealloc.and_then(|m| {
             assert_eq!(m.dim(), (n_ao, n_ao));
-            m.fill(0.0);
             Some(m.into_shape((n_ao, n_ao, 1)).unwrap())
         });
 
-        let h = self.construct_int1e_sym(cint1e!(int1e_kin_sph), 1, h);
-        let h = self.construct_int1e_sym(cint1e!(int1e_nuc_sph), 1, Some(h));
+        let h_kin =
+            self.construct_int1e_sym(cint1e!(int1e_kin_sph), 1, prealloc);
+        let h =
+            self.construct_int1e_sym(cint1e!(int1e_nuc_sph), 1, Some(h_kin));
 
         h.into_shape((n_ao, n_ao)).unwrap()
+    }
+
+    pub fn construct_ao_fock(
+        &self,
+        density: ArrayView2<f64>,
+        prealloc: Option<Array2<f64>>,
+    ) -> Array2<f64> {
+        let h = self.construct_ao_h(prealloc);
+        self.construct_ao_g(density, Some(h))
     }
 }

@@ -21,12 +21,12 @@ impl Molecule {
         &self,
         int_func: F,
         n_comp: usize,
-        matrix: Option<Array3<f64>>,
+        prealloc: Option<Array3<f64>>,
     ) -> Array3<f64> {
         let n_ao = self.get_n_ao();
         let n_sh = self.get_shells().len();
 
-        let mut matrix = if let Some(m) = matrix {
+        let mut matrix = if let Some(m) = prealloc {
             assert_eq!(m.dim(), (n_ao, n_ao, n_comp));
             m
         } else {
@@ -70,12 +70,12 @@ impl Molecule {
         &self,
         int_func: F,
         n_comp: usize,
-        matrix: Option<Array3<f64>>,
+        prealloc: Option<Array3<f64>>,
     ) -> Array3<f64> {
         let n_ao = self.get_n_ao();
         let n_sh = self.get_shells().len();
 
-        let mut matrix = if let Some(m) = matrix {
+        let mut matrix = if let Some(m) = prealloc {
             assert_eq!(m.dim(), (n_ao, n_ao, n_comp));
             m
         } else {
