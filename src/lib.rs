@@ -13,14 +13,16 @@ pub use ndarray::*;
 
 #[cfg(test)]
 mod tests {
+    const TEST_PREC: f64 = 1e-13;
+
+    use crate::*;
+
     use std::{
         fs::File,
         io::{BufRead, BufReader},
     };
 
     use clap::Parser;
-
-    const TEST_PREC: f64 = 1e-13;
 
     #[derive(Parser, Debug)]
     struct Args {
@@ -30,8 +32,6 @@ mod tests {
         #[clap(long, parse(from_flag))]
         show_output: bool,
     }
-
-    use crate::*;
 
     fn get_num_test_jobs() -> usize {
         let args = Args::parse();

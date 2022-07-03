@@ -6,7 +6,9 @@ use regex::Regex;
 use ndarray::Array2;
 
 fn load_basis_file(basis_name: &str) -> String {
-    read_to_string(format!("./ao_basis/{}.nw", basis_name)).unwrap()
+    let path = format!("{}/ao_basis/{basis_name}.nw", env!("OUT_DIR"));
+    println!("Path: \"{}\"", path);
+    read_to_string(path).unwrap()
 }
 
 fn get_angular_momentum(c: char) -> i32 {
