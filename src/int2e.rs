@@ -1,35 +1,9 @@
+use arrayvec::ArrayVec;
 use itertools::iproduct;
 use rayon::prelude::*;
 
 use crate::*;
-
-fn split_mat<'a>(
-    mut mat: ArrayViewMut5<'a, f64>,
-    shells: &[Shell],
-) -> Vec<ArrayViewMut5<'a, f64>> {
-    let mut parts = Vec::new();
-
-    for sh1 in shells {
-        let (mut cut1, rest) = mat.split_at(Axis(0), sh1.n_ao);
-        mat = rest;
-        for sh2 in shells {
-            let (mut cut2, rest) = cut1.split_at(Axis(1), sh2.n_ao);
-            cut1 = rest;
-            for sh3 in shells {
-                let (mut cut3, rest) = cut2.split_at(Axis(2), sh3.n_ao);
-                cut2 = rest;
-                for sh4 in shells {
-                    let (chunk, rest) = cut3.split_at(Axis(3), sh4.n_ao);
-                    cut3 = rest;
-
-                    parts.push(chunk);
-                }
-            }
-        }
-    }
-
-    parts
-}
+use matrix_util::*;
 
 impl Molecule {
     pub fn construct_int2e<
@@ -57,7 +31,7 @@ impl Molecule {
 
         let mut matrix = Array5::zeros((n_ao, n_ao, n_ao, n_ao, n_comp));
 
-        let chunks = split_mat(matrix.view_mut(), self.get_shells());
+        let chunks = split_2e_mat_mut(matrix.view_mut(), self.get_shells());
 
         let mut chunks: Vec<_> = iproduct!(0..n_sh, 0..n_sh, 0..n_sh, 0..n_sh)
             .map(|(i, j, k, l)| [l as i32, k as i32, j as i32, i as i32])
@@ -86,5 +60,67 @@ impl Molecule {
         );
 
         matrix
+    }
+
+    pub fn get_int2e_single<
+        F: Fn(
+            &mut [f64],
+            [i32; 4],
+            &[[i32; 6]],
+            &[[i32; 8]],
+            &[f64],
+            Option<&mut CINToptimizer>,
+        ) -> i32,
+    >(
+        &self,
+        int_func: F,
+        n_comp: usize,
+        inds: [usize; 4],
+        c: usize,
+    ) -> f64 {
+        let shells = inds
+            .iter()
+            .map(|&i| self.ao2shell(i))
+            .collect::<ArrayVec<_, 4>>()
+            .into_inner()
+            .unwrap();
+
+        let mut buf = vec![
+            0.0;
+            shells.iter().map(|s| s.n_ao).product::<usize>()
+                * n_comp
+        ];
+
+        let shl_inds = shells
+            .iter()
+            .map(|s| s.shl_ind as i32)
+            .collect::<ArrayVec<_, 4>>()
+            .into_inner()
+            .unwrap();
+
+        self.int(int_func, &mut buf, shl_inds, None);
+
+        let shape = shells
+            .iter()
+            .map(|s| s.n_ao)
+            .chain([n_comp])
+            .rev()
+            .collect::<ArrayVec<_, 5>>()
+            .into_inner()
+            .unwrap();
+
+        let buf_view = ArrayView5::from_shape(shape, &buf).unwrap();
+
+        let inds = inds
+            .iter()
+            .zip(shells.iter())
+            .map(|(i, s)| i - s.ao_ind)
+            .chain([c])
+            .rev()
+            .collect::<ArrayVec<_, 5>>()
+            .into_inner()
+            .unwrap();
+
+        buf_view[inds]
     }
 }

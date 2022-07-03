@@ -66,15 +66,17 @@ pub struct Shell {
     pub n_cont: usize,
     pub n_ao: usize,
     pub ao_ind: usize,
+    pub shl_ind: usize,
 }
 
 impl Shell {
-    fn new(l: usize, n_cont: usize, ao_ind: usize) -> Self {
+    fn new(l: usize, n_cont: usize, ao_ind: usize, shl_ind: usize) -> Self {
         Self {
             l,
             n_cont,
             n_ao: (2 * l + 1) * n_cont,
             ao_ind,
+            shl_ind,
         }
     }
 }
@@ -118,7 +120,7 @@ fn init_libcint(
                 0,
             ]);
 
-            let shell = Shell::new(*l as usize, w - 1, n_ao);
+            let shell = Shell::new(*l as usize, w - 1, n_ao, shells.len());
             shells.push(shell);
             n_ao += shell.n_ao;
             if n_ao > max_shell_size {
@@ -191,6 +193,14 @@ impl Molecule {
 
     pub fn get_max_shell_size(&self) -> usize {
         self.max_shell_size
+    }
+
+    pub fn ao2shell(&self, ao_ind: usize) -> Shell {
+        *self
+            .shells
+            .iter()
+            .find(|&s| s.ao_ind + s.n_ao > ao_ind)
+            .unwrap()
     }
 
     pub fn int<

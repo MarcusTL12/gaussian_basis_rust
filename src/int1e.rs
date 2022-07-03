@@ -3,27 +3,7 @@ use libcint::*;
 use rayon::prelude::*;
 
 use crate::*;
-
-fn split_mat<'a>(
-    mut mat: ArrayViewMut3<'a, f64>,
-    shells: &[Shell],
-) -> Vec<ArrayViewMut3<'a, f64>> {
-    let mut parts = Vec::new();
-
-    for sh1 in shells {
-        let (mut top, rest) = mat.split_at(Axis(0), sh1.n_ao);
-        mat = rest;
-
-        for sh2 in shells {
-            let (chunk, right) = top.split_at(Axis(1), sh2.n_ao);
-            top = right;
-
-            parts.push(chunk);
-        }
-    }
-
-    parts
-}
+use matrix_util::*;
 
 impl Molecule {
     pub fn construct_int1e<
@@ -48,7 +28,7 @@ impl Molecule {
 
         let mut chunks: Vec<_> = iproduct!(0..n_sh, 0..n_sh)
             .map(|(i, j)| [j as i32, i as i32])
-            .zip(split_mat(matrix.view_mut(), self.get_shells()).into_iter())
+            .zip(split_1e_mat_mut(matrix.view_mut(), self.get_shells()).into_iter())
             .collect();
 
         chunks.par_iter_mut().for_each_init(
@@ -87,7 +67,7 @@ impl Molecule {
         let mut matrix = Array3::zeros((n_ao, n_ao, n_comp));
 
         let mut chunks: Vec<_> =
-            split_mat(matrix.view_mut(), self.get_shells())
+            split_1e_mat_mut(matrix.view_mut(), self.get_shells())
                 .into_iter()
                 .map(|c| Some(c))
                 .collect();

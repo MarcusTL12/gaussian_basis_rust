@@ -1,8 +1,11 @@
+mod ao_fock;
 mod basisparse;
 mod int1e;
 mod int2e;
+mod matrix_util;
 mod molecule;
 
+pub use ao_fock::*;
 pub use basisparse::*;
 pub use libcint::*;
 pub use molecule::*;
@@ -15,7 +18,35 @@ mod tests {
         io::{BufRead, BufReader},
     };
 
+    use clap::Parser;
+
+    #[derive(Parser, Debug)]
+    struct Args {
+        #[clap(long)]
+        test_threads: Option<usize>,
+
+        #[clap(long, parse(from_flag))]
+        show_output: bool,
+    }
+
     use crate::*;
+
+    fn get_num_test_jobs() -> usize {
+        let args = Args::parse();
+
+        args.test_threads.unwrap_or(num_cpus::get())
+    }
+
+    fn set_threads() {
+        let test_threads = get_num_test_jobs();
+
+        let threads = num_cpus::get() / test_threads;
+
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build_global()
+            .unwrap_or(());
+    }
 
     fn load_vec(vec_name: &str) -> Vec<f64> {
         BufReader::new(
@@ -67,6 +98,8 @@ mod tests {
 
     #[test]
     fn test_int1e_matrix() {
+        set_threads();
+
         let mol = Molecule::new(
             parse_atoms(
                 "
@@ -94,10 +127,7 @@ mod tests {
 
     #[test]
     fn test_int2e_matrix() {
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(2)
-            .build_global()
-            .unwrap();
+        set_threads();
 
         let mol = Molecule::new(
             parse_atoms(
@@ -121,6 +151,37 @@ mod tests {
 
         // from pyscf
         let check = load_vec("h2o_eri_ccpvdz");
+
+        assert_eq!(slice.len(), check.len());
+
+        for (a, b) in slice.iter().zip(check.iter()) {
+            assert!((a - b).abs() < 1e-14);
+        }
+    }
+
+    #[test]
+    fn test_ao_g_construction() {
+        set_threads();
+
+        let mol = Molecule::new(
+            parse_atoms(
+                "
+    O   0.0     0.0     0.0
+    H   1.0     0.0     0.0
+    H   0.0     1.0     0.0
+",
+            ),
+            &get_basis("cc-pvdz"),
+        );
+
+        let density = load_vec("h2o_rand_D_ccpvdz");
+        let density = ArrayView2::from_shape((24, 24), &density).unwrap();
+
+        let ao_g = mol.construct_ao_g(density);
+
+        let slice = ao_g.as_slice_memory_order().unwrap();
+
+        let check = load_vec("h2o_rand_G_ccpvdz");
 
         assert_eq!(slice.len(), check.len());
 
