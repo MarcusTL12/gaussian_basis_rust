@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use ao_basis::LazyBasis;
 use libcint::*;
 use ndarray::prelude::*;
@@ -160,6 +162,28 @@ pub struct Molecule {
     n_el: usize,
     nuc_charge: usize,
     max_shell_size: usize,
+}
+
+impl Debug for Molecule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Molecule: {{")?;
+
+        write!(f, "Atoms: [{}", self.atoms[0].0)?;
+
+        for (atom, _) in &self.atoms[1..] {
+            write!(f, ", {}", atom)?;
+        }
+
+        writeln!(f, "]")?;
+
+        writeln!(f, "n_ao: {}", self.n_ao)?;
+        writeln!(f, "n_el: {}", self.n_ao)?;
+        writeln!(f, "n_ao: {}", self.n_ao)?;
+
+        writeln!(f, "}}")?;
+
+        Ok(())
+    }
 }
 
 impl Molecule {
