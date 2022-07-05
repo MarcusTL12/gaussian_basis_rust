@@ -176,9 +176,10 @@ impl Debug for Molecule {
 
         writeln!(f, "]")?;
 
-        writeln!(f, "n_ao: {}", self.n_ao)?;
-        writeln!(f, "n_el: {}", self.n_ao)?;
-        writeln!(f, "n_ao: {}", self.n_ao)?;
+        writeln!(f, "n_ao:    {}", self.n_ao)?;
+        writeln!(f, "n_el:    {}", self.n_ao)?;
+        writeln!(f, "n_ao:    {}", self.n_ao)?;
+        writeln!(f, "n_shell: {}", self.shells.len())?;
 
         writeln!(f, "}}")?;
 
