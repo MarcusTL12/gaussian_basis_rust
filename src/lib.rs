@@ -24,9 +24,11 @@ mod tests {
     use std::{
         fs::File,
         io::{BufRead, BufReader},
+        time::Instant,
     };
 
     use clap::Parser;
+    use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
     #[derive(Parser, Debug)]
     struct Args {
@@ -288,5 +290,50 @@ mod tests {
         );
 
         println!("{:?}", mol);
+    }
+
+    #[test]
+    fn test_ao_g_sym() {
+        set_threads();
+
+        let mol = Molecule::new(
+            parse_atoms(
+                "
+    O   0.0     0.0     0.0
+    H   1.0     0.0     0.0
+    H   0.0     1.0     0.0
+",
+            ),
+            &mut get_basis("cc-pvtz"),
+        );
+
+        let mut density = Array2::random(
+            (mol.get_n_ao(), mol.get_n_ao()),
+            Uniform::new(0.0, 1.0),
+        );
+
+        let dc = density.clone();
+        density += &dc.t();
+
+        let timer = Instant::now();
+        let ao_g = mol.construct_ao_g(density.view(), None);
+        let nonsym_time = timer.elapsed();
+        println!("No sym time: {nonsym_time:?}");
+
+        let timer = Instant::now();
+        let ao_g_sym = mol.construct_ao_g_sym(density.view(), None);
+        let sym_time = timer.elapsed();
+        println!("Sym time: {sym_time:?}");
+
+        let max_dev = ao_g
+            .iter()
+            .zip(ao_g_sym.iter())
+            .map(|(a, b)| (a - b).abs())
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
+
+        println!("Max deviation: {max_dev:2e}");
+
+        assert!(max_dev < 1e-11);
     }
 }

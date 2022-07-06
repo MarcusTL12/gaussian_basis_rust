@@ -18,6 +18,10 @@ arrayvec = "0.7"
 [dev-dependencies]
 num_cpus = "1.13"
 clap = {version = "3.2", features = ["derive", "cargo"]}
+ndarray-rand = "0.14"
 
 [build-dependencies]
 ao_basis = { git = "https://github.com/MarcusTL12/ao_basis_rust" }
+
+[profile.dev]
+opt-level = 3
